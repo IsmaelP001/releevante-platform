@@ -1,18 +1,23 @@
 import { BookCompartment } from "@/book/domain/models";
 import { Cart } from "../domain/cart.model";
-import { CartDto } from "./dto";
+import { CartDto, CartInitDto, CartItemDto } from "./dto";
 import {
   BookTransaction,
   BookTransactionItemStatus,
   BookTransactions,
   BookTransactionStatus,
+  TransactionItemStatusEnum,
+  TransactionStatusEnum,
+  TransactionType,
 } from "../domain/loan.model";
 import { Rating } from "../domain/service-rating.model";
 import { UserId } from "@/identity/domain/models";
 
 export interface CartService {
   checkout(dto: CartDto): Promise<Cart>;
-  onCheckOutFailed(cart: Cart): Promise<Cart>;
+  onCheckOutFailed(dto: CartDto): Promise<Cart>;
+  update(dto: CartDto): Promise<Cart>;
+  initCart(dto: CartInitDto): Promise<CartDto>;
 }
 
 export interface BookLendingService {
@@ -27,13 +32,37 @@ export interface BridgeIoApiClient {
   openCompartments(comparments: BookCompartment[]): Promise<any>;
 }
 
-export interface BookLoanService {
+export interface BookTransactionService {
   checkout(cart: Cart): Promise<BookTransactions>;
-  addLoanItemStatus(
+  newTransactionItemStatus(
     status: BookTransactionItemStatus
   ): Promise<BookTransactionItemStatus>;
-  addLoanStatus(status: BookTransactionStatus): Promise<BookTransactionStatus>;
-  getUserLoans(clientId: UserId): Promise<BookTransaction[]>;
+  newTransactionStatus(status: BookTransactionStatus): Promise<BookTransactionStatus>;
+  getUserTransactions(clientId: UserId): Promise<BookTransactions>;
+}
+
+export interface TransactionItemStatusDto {
+  itemId: string;
+  status: TransactionItemStatusEnum;
+  isbn: string;
+  cpy: string;
+  transactionType: TransactionType;
+}
+
+export interface TransactionStatusDto {
+  transactionId: string;
+  status: TransactionStatusEnum;
+}
+
+export interface BookTransactionServiceFacade {
+  checkout(cart: CartDto): Promise<BookTransactions>;
+  newTransactionItemStatus(
+    status: TransactionItemStatusDto
+  ): Promise<BookTransactionItemStatus>;
+  newTransactionStatus(
+    status: TransactionStatusDto
+  ): Promise<BookTransactionStatus>;
+  getUserTransactions(clientId: UserId): Promise<BookTransactions>;
 }
 
 export interface ServiceRatingService {

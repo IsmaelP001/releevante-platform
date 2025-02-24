@@ -5,9 +5,9 @@ import com.releevante.core.application.service.AccountAuthorizationService;
 import com.releevante.core.application.service.SmartLibraryService;
 import com.releevante.core.domain.*;
 import com.releevante.core.domain.repository.SmartLibraryRepository;
-import com.releevante.types.AccountPrincipal;
-import com.releevante.types.Slid;
+import com.releevante.types.*;
 import com.releevante.types.exceptions.InvalidInputException;
+import java.time.ZonedDateTime;
 import java.util.Set;
 import java.util.function.Predicate;
 import reactor.core.publisher.Flux;
@@ -16,6 +16,8 @@ import reactor.core.publisher.Mono;
 public class DefaultLibraryService implements SmartLibraryService {
   final SmartLibraryRepository smartLibraryRepository;
   final AccountAuthorizationService accountAuthorizationService;
+  final SequentialGenerator<String> uuidGenerator = UuidGenerator.instance();
+  final SequentialGenerator<ZonedDateTime> dateTimeGenerator = ZonedDateTimeGenerator.instance();
 
   public DefaultLibraryService(
       SmartLibraryRepository smartLibraryRepository,
@@ -25,21 +27,34 @@ public class DefaultLibraryService implements SmartLibraryService {
   }
 
   @Override
-  public Mono<SmartLibrary> synchronizeClientsLoans(SmartLibrarySyncDto syncDto) {
+  public Mono<SmartLibrary> synchronizeLibraryTransactions(SmartLibrarySyncDto libraryDto) {
+    return libraryFrom(libraryDto).flatMap(smartLibraryRepository::synchronizeLibraryTransactions);
+  }
+
+  private Mono<SmartLibrary> libraryFrom(SmartLibrarySyncDto libraryDto) {
     return accountAuthorizationService
         .getCurrentPrincipal()
         .flatMap(
             principal ->
                 smartLibraryRepository
-                    .findBy(Slid.of(syncDto.slid()))
+                    .findBy(Slid.of(principal.audience()))
                     .switchIfEmpty(Mono.error(new InvalidInputException("Smart library not exist")))
-                    .flatMap(
-                        smartLibrary -> {
-                          smartLibrary.validateIsActive();
-                          var clients = syncDto.domainClients(principal);
-                          return smartLibraryRepository.synchronizeClientsLoans(
-                              smartLibrary.withClients(clients));
-                        }));
+                    .doOnNext(AbstractSmartLibrary::validateIsActive)
+                    .map(
+                        smartLibrary ->
+                            smartLibrary.withClients(
+                                libraryDto.toDomain(principal, uuidGenerator, dateTimeGenerator))));
+  }
+
+  @Override
+  public Mono<SmartLibrary> synchronizeLibraryTransactionStatus(SmartLibrarySyncDto libraryDto) {
+    return libraryFrom(libraryDto)
+        .flatMap(smartLibraryRepository::synchronizeLibraryTransactionStatus);
+  }
+
+  @Override
+  public Mono<SmartLibrary> synchronizeLibraryClientRatings(SmartLibrarySyncDto libraryDto) {
+    return libraryFrom(libraryDto).flatMap(smartLibraryRepository::synchronizeLibraryClientRatings);
   }
 
   @Override
@@ -79,5 +94,20 @@ public class DefaultLibraryService implements SmartLibraryService {
   @Override
   public Mono<Boolean> setSynchronized(Slid slid) {
     return smartLibraryRepository.setSynchronized(slid);
+  }
+
+  @Override
+  public Mono<Boolean> setBooksSynchronized(Slid slid) {
+    return null;
+  }
+
+  @Override
+  public Mono<Boolean> setLibrarySettingsSynchronized(Slid slid) {
+    return null;
+  }
+
+  @Override
+  public Mono<Boolean> setAccessSynchronized(Slid slid) {
+    return null;
   }
 }

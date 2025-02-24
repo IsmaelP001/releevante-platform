@@ -1,16 +1,9 @@
+import { TransactionItemStatusEnum } from "@/core/domain/loan.model";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-type ItemStatus =
-  'checkout_pending'
-  | "checkout_started"
-  | "checkout_successful"
-  | "door_opening"
-  | "opened_waiting"
-  | "checkout_failure";
 
 export type CurrentBook = {
   isbn: string | null;
-  status: ItemStatus | null;
+  status: TransactionItemStatusEnum | null;
 };
 
 interface CheckoutState {
@@ -27,25 +20,27 @@ const initialState: CheckoutState = {
 };
 
 export const checkoutSlice = createSlice({
-  name: "counter",
+  name: "checkout",
   initialState,
   reducers: {
     setCurrentCopy(state, action: PayloadAction<CurrentBook>) {
       const { isbn, status } = action.payload;
       state.currentBook = { isbn, status };
-      const completedBookKeys=state.completedBooks.map(item=>item.isbn)
-      if(!completedBookKeys.includes(isbn) && status === 'checkout_successful'){
-        state.completedBooks=[...state.completedBooks,action.payload]
+      const completedBookKeys = state.completedBooks.map((item) => item.isbn);
+      if (
+        !completedBookKeys.includes(isbn) &&
+        status === TransactionItemStatusEnum.CHECKOUT_SUCCESS
+      ) {
+        state.completedBooks = [...state.completedBooks, action.payload];
       }
     },
-    clearCheckout(state){
-      state.completedBooks=initialState.completedBooks
-      state.currentBook=initialState.currentBook
-    }
-    
+    clearCheckout(state) {
+      state.completedBooks = initialState.completedBooks;
+      state.currentBook = initialState.currentBook;
+    },
   },
 });
 
-export const { setCurrentCopy,clearCheckout } = checkoutSlice.actions;
+export const { setCurrentCopy, clearCheckout } = checkoutSlice.actions;
 
 export default checkoutSlice.reducer;

@@ -1,10 +1,9 @@
 "use client";
-import {
-  onNewItemStatus,
-  returnSingleBook,
-} from "@/actions/book-transactions-actions";
+import { onNewItemStatus } from "@/actions/book-transactions-actions";
 import { useRouter } from "@/config/i18n/routing";
+import { TransactionItemStatusEnum } from "@/core/domain/loan.model";
 import { useAppSelector } from "@/redux/hooks";
+import { SocketEventType, useWebSocketServer } from "@/socket";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -22,38 +21,47 @@ export default function DepositPage() {
   const queryClient = useQueryClient();
   const hasCheckedIn = useRef(false);
 
+  const { eventEmitter } = useWebSocketServer(dispatch);
+
   const { mutate: returnBookMutation } = useMutation({
     mutationFn: onNewItemStatus,
-    onSuccess(loanItem) {
+    onSuccess(__) {
       queryClient.invalidateQueries({
         queryKey: ["RETURN_BOOKS"],
         exact: true,
         refetchType: "all",
       });
-      dispatch({
-        type: "socket/checkin",
-        event: "checkin",
-        payload: currentItemForCheckin,
-      });
+
+      eventEmitter(SocketEventType.checkin, { payload: currentItemForCheckin });
     },
   });
 
+
+
+  const startCheckingProcess = ()=>{
+
+
+  }
+
+
+
   useEffect(() => {
-    console.log("USE EFFECT 1: " + currentItemForCheckin.id);
+    console.log("ARRIVING HERE WITH status: " + currentItemForCheckin.status)
     if (!currentItemForCheckin.id) return;
     if (hasCheckedIn.current) return;
     returnBookMutation({
+      ...currentItemForCheckin,
       itemId: currentItemForCheckin.id,
-      status: currentItemForCheckin.status,
     });
     hasCheckedIn.current = true;
   }, []);
 
   useEffect(() => {
-    console.log("USE EFFECT 2: " + currentItemForCheckin.id);
-
-    if (currentItemForCheckin.status === "CHECKIN_SUCCESS") {
-      router.push("/returnbook/thanks");
+    console.log("current status: " + currentItemForCheckin.status)
+    if (
+      currentItemForCheckin.status === TransactionItemStatusEnum.CHECKIN_SUCCESS
+    ) {
+      router.push("/checkin/thanks");
     }
   }, [currentItemForCheckin]);
 

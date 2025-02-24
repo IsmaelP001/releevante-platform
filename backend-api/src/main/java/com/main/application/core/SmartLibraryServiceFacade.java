@@ -14,11 +14,21 @@ public interface SmartLibraryServiceFacade {
 
   Flux<SmartLibraryDto> smartLibrariesValidated(AccountPrincipal principal, Set<Slid> sLids);
 
-  Mono<SmartLibrary> synchronizeClientsLoans(SmartLibrarySyncDto synchronizeDto);
+  Mono<SmartLibrary> synchronizeLibraryTransactions(SmartLibrarySyncDto synchronizeDto);
+
+  Mono<SmartLibrary> synchronizeLibraryTransactionStatus(SmartLibrarySyncDto synchronizeDto);
+
+  Mono<SmartLibrary> synchronizeLibraryClientRatings(SmartLibrarySyncDto synchronizeDto);
 
   Flux<LibrarySetting> getSetting(Slid slid, boolean synced);
 
   Flux<LibrarySetting> getSetting(Slid slid);
+
+  Mono<Boolean> setBooksSynchronized(Slid slid);
+
+  Mono<Boolean> setLibrarySettingsSynchronized(Slid slid);
+
+  Mono<Boolean> setAccessSynchronized(Slid slid);
 
   Mono<Boolean> setSynchronized(Slid slid);
 

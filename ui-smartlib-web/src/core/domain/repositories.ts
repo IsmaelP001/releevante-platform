@@ -16,16 +16,17 @@ export interface TransactionCallback {
 export interface CartRepository {
   save(cart: Cart): Promise<Cart>;
   update(cart: Cart): Promise<Cart>;
-  find(cartId: CartId): Promise<Cart>;
+  findById(cartId: CartId): Promise<Cart>;
+  findByUser(userId: UserId): Promise<Cart>;
 }
 
-export interface LoanRepository {
+export interface BookTransactionRepository {
   save(transactions: BookTransactions): Promise<void>;
-  addLoanItemStatus(
+  newTransactionItemStatus(
     status: BookTransactionItemStatus
   ): Promise<BookTransactionItemStatus>;
-  addLoanStatus(status: BookTransactionStatus): Promise<BookTransactionStatus>;
-  getUserLoans(clientId: UserId): Promise<BookTransaction[]>;
+  newTransactionStatus(status: BookTransactionStatus): Promise<BookTransactionStatus>;
+  getUserTransactions(clientId: UserId): Promise<BookTransactions>;
 }
 
 export interface SettingsRepository {

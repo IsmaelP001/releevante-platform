@@ -1,37 +1,28 @@
 "use server";
 
-import { cartServiceFacade, loanServiceFacade } from "@/core/application";
+import { bookTransactionServiceFacade } from "@/core/application";
 import { getAuthToken } from "./auth-actions";
-import { LoanItemStatusDto, LoanStatusDto } from "@/core/application/dto";
-import { CheckinItem } from "@/redux/features/returnbookSlice";
 import { BookTransactionItemStatus } from "@/core/domain/loan.model";
+import {
+  TransactionItemStatusDto,
+  TransactionStatusDto,
+} from "@/core/application/service.definition";
 
-export const fetchUserBookLoans = async () => {
-  try {
-    const { userId } = await getAuthToken();
-    return await loanServiceFacade.getUserLoans(userId!);
-  } catch (error) {
-    return [];
-  }
-};
+export const fetchUserTransactions = async () => {
+  const { userId } = await getAuthToken();
 
-export const returnSingleBook = async (loanItem: CheckinItem): Promise<any> => {
-  try {
-    return await cartServiceFacade.newLoanItemStatus({
-      itemId: loanItem.id,
-      status: "RETURNED",
-    });
-  } catch (error) {
-    console.log("error return book" + error);
-    throw new Error("error return book" + error);
+  if (userId) {
+    return await bookTransactionServiceFacade.getUserTransactions(userId);
   }
+
+  throw new Error("Unauthorized");
 };
 
 export const onNewItemStatus = async (
-  status: LoanItemStatusDto
+  status: TransactionItemStatusDto
 ): Promise<BookTransactionItemStatus> => {
   try {
-    return await cartServiceFacade.newLoanItemStatus(status);
+    return await bookTransactionServiceFacade.newTransactionItemStatus(status);
   } catch (error) {
     console.log("error return book" + error);
     throw new Error("error return book" + error);
@@ -39,10 +30,10 @@ export const onNewItemStatus = async (
 };
 
 export const onNewTransactionStatus = async (
-  status: LoanStatusDto
+  status: TransactionStatusDto
 ): Promise<any> => {
   try {
-    return await cartServiceFacade.newLoanStatus(status);
+    return await bookTransactionServiceFacade.newTransactionStatus(status);
   } catch (error) {
     throw new Error("error return book" + error);
   }

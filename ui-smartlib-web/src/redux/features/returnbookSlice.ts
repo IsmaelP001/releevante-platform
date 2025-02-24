@@ -1,4 +1,7 @@
-import { LoanItemStatusValues } from "@/core/domain/loan.model";
+import {
+  TransactionItemStatusEnum,
+  TransactionType,
+} from "@/core/domain/loan.model";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export type CheckinItem = {
@@ -7,7 +10,9 @@ export type CheckinItem = {
   image: string;
   isbn: string;
   title: string;
-  status: LoanItemStatusValues;
+  status: TransactionItemStatusEnum;
+  cpy: string;
+  transactionType: TransactionType;
 };
 
 interface CheckoutState {
@@ -22,7 +27,9 @@ const initialState: CheckoutState = {
     isbn: "",
     image: "",
     title: "",
-    status: "CHECKIN_PENDING",
+    status: TransactionItemStatusEnum.CHECKIN_PENDING,
+    cpy: "",
+    transactionType: TransactionType.RENT,
   },
   completedBooks: [],
 };
@@ -36,14 +43,17 @@ export const returnBookSlice = createSlice({
     },
     updateCurrentBookStatus(
       state,
-      action: PayloadAction<{ status: LoanItemStatusValues }>
+      action: PayloadAction<{ status: TransactionItemStatusEnum }>
     ) {
       state.currentItemForCheckin = {
         ...state.currentItemForCheckin,
         status: action.payload.status,
       };
 
-      if (state.currentItemForCheckin?.status === "CHECKIN_SUCCESS") {
+      if (
+        state.currentItemForCheckin?.status ===
+        TransactionItemStatusEnum.CHECKIN_SUCCESS
+      ) {
         state.completedBooks = [
           ...state.completedBooks,
           state.currentItemForCheckin,

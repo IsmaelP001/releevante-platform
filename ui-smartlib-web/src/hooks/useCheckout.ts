@@ -1,63 +1,53 @@
-import { useEffect, useMemo, useRef } from "react";
-import { useAppSelector } from "@/redux/hooks";
-import { useMutation } from "@tanstack/react-query";
-import { useDispatch } from "react-redux";
-import { checkout } from "@/actions/cart-actions";
-import { clearCart } from "@/redux/features/cartSlice";
-import { clearCheckout } from "@/redux/features/checkoutSlice";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useRouter } from "@/config/i18n/routing";
+import { SocketEventType, useWebSocketServer } from "@/socket";
+import { useMutation } from "@tanstack/react-query";
+import { checkout } from "@/actions/cart-actions";
+import { setTransaction } from "@/redux/features/bookExchangeSlice";
 
 export function useCheckout() {
-  const cartItems = useAppSelector((state) => state.cart.items);
-  const { currentBook, completedBooks } = useAppSelector(
-    (state) => state.checkout
-  );
-  const dispatch = useDispatch();
-  const router = useRouter();
-  const hasClearedData = useRef(false);
-  const hasCheckedOut = useRef(false);
+  const dispatch = useAppDispatch();
+  const { eventEmitter } = useWebSocketServer(dispatch);
 
-  const { mutate: addCartItemsMutation } = useMutation({
+  const router = useRouter();
+
+  const cartItems = useAppSelector((state) => state.cart.items);
+
+  const { mutate, isPending, isError } = useMutation({
     mutationFn: checkout,
+    retry: 1,
     onSuccess(data) {
-      dispatch({ type: "socket/checkout", event: "checkout", payload: data });
+      console.log("DATA onSuccess");
+      dispatch(setTransaction(data));
+
+      const payload = {};
+
+      if (data.rent) {
+        payload["rent"] = data.rent[0];
+      }
+      if (data.purchase) {
+        payload["purchase"] = data.purchase[0];
+      }
+
+      eventEmitter(SocketEventType.checkout, { payload });
+      router.push("/checkout");
+    },
+    onError(error) {
+      console.log("error on checkout");
+      console.log(error);
+      if (error?.message?.includes("exceeded")) {
+        console.log("error type is MaxBookItemThresholdExceeded");
+      }
     },
   });
 
-  useEffect(() => {
-    if (!cartItems || cartItems?.length === 0) return;
-    if (hasCheckedOut.current) return;
-    addCartItemsMutation(cartItems);
-    hasCheckedOut.current = true;
-  }, [cartItems, addCartItemsMutation]);
-
-  const currentBookShowing = useMemo(() => {
-    return (
-      cartItems.find((item) => item.isbn === currentBook.isbn) || cartItems?.[0]
-    );
-  }, [currentBook, cartItems]);
-
-  const clearAllData = () => {
-    if (hasClearedData.current) return;
-    dispatch(clearCart());
-    dispatch(clearCheckout());
-    hasClearedData.current = true;
+  const transactionCheckout = () => {
+    return mutate(cartItems);
   };
 
-  useEffect(() => {
-    const isAllBookProcessed = completedBooks.every(
-      (item) => item.status === "checkout_successful"
-    );
-    if (isAllBookProcessed && completedBooks.length === cartItems.length) {
-      clearAllData();
-      router.push("/checkout/thanks");
-    }
-  }, [cartItems, completedBooks, router]);
-
   return {
-    cartItems,
-    currentBook,
-    completedBooks,
-    currentBookShowing,
+    transactionCheckout,
+    isPending,
+    isError,
   };
 }

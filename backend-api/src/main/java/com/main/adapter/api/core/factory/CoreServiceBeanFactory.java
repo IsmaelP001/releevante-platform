@@ -1,24 +1,32 @@
 package com.main.adapter.api.core.factory;
 
+import com.main.adapter.api.core.jobs.BookScheduledUpdateJob;
 import com.releevante.core.adapter.service.books.DefaultBookRegistrationService;
 import com.releevante.core.adapter.service.google.GoogleSheetService;
 import com.releevante.core.application.service.*;
-import com.releevante.core.application.service.impl.DefaultBookServiceImpl;
-import com.releevante.core.application.service.impl.DefaultLibraryService;
-import com.releevante.core.application.service.impl.DefaultTaskExecutionService;
-import com.releevante.core.application.service.impl.SettingServiceImpl;
+import com.releevante.core.application.service.impl.*;
 import com.releevante.core.domain.repository.*;
+import com.releevante.core.domain.repository.ratings.BookRatingRepository;
+import com.releevante.core.domain.repository.ratings.ServiceRatingRepository;
 import com.releevante.core.domain.tasks.TaskRepository;
 import com.releevante.identity.application.service.auth.AuthorizationService;
+import java.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @Configuration
 public class CoreServiceBeanFactory {
 
-  @Autowired BookLoanRepository bookLoanRepository;
+  Logger logger = LoggerFactory.getLogger(CoreServiceBeanFactory.class);
+  @Autowired BookTransactionRepository bookLoanRepository;
 
   @Autowired SmartLibraryRepository smartLibraryRepository;
 
@@ -31,6 +39,12 @@ public class CoreServiceBeanFactory {
   @Autowired BookTagRepository bookTagRepository;
 
   @Autowired SettingsRepository settingsRepository;
+
+  @Autowired BookRatingRepository bookRatingRepository;
+
+  @Autowired SmartLibraryInventoryRepository smartLibraryInventoryRepository;
+
+  @Autowired ServiceRatingRepository serviceRatingRepository;
 
   @Value("${spring.application.name}")
   String applicationName;
@@ -55,6 +69,13 @@ public class CoreServiceBeanFactory {
     return new SettingServiceImpl(
         settingsRepository, accountAuthorizationService, smartLibraryRepository);
   }
+  @Bean()
+  public ServiceRatingService serviceRatingService(AccountAuthorizationService accountAuthorizationService){
+    return new ServiceRatingServiceImpl(
+            serviceRatingRepository,
+            accountAuthorizationService
+    );
+  }
 
   @Bean
   public BookRegistrationService bookRegistrationService() {
@@ -68,8 +89,38 @@ public class CoreServiceBeanFactory {
   }
 
   @Bean
-  public BookService bookService(BookRegistrationService bookRegistrationService) {
+  public BookService bookService(
+      BookRegistrationService bookRegistrationService,
+      AccountAuthorizationService accountAuthorizationService) {
     return new DefaultBookServiceImpl(
-        bookRepository, bookRegistrationService, bookTagRepository, smartLibraryRepository);
+        bookRepository,
+        bookRegistrationService,
+        bookTagRepository,
+        smartLibraryRepository,
+        accountAuthorizationService,
+        bookRatingRepository);
+  }
+
+  @Bean
+  public BookScheduledUpdateJob bookScheduledUpdateJob() {
+    return new BookScheduledUpdateJob(bookRatingRepository, smartLibraryInventoryRepository);
+  }
+
+  @Bean
+  public Disposable someTaskScheduler(BookScheduledUpdateJob bookScheduledUpdateJob) {
+    return Flux.interval(Duration.ofMinutes(1))
+        .publishOn(Schedulers.boundedElastic())
+        .onBackpressureDrop()
+        .concatMap(
+            ignored ->
+                Mono.defer(
+                    () -> {
+                      logger.info("Trying to process the task...");
+                      return Mono.zip(
+                          bookScheduledUpdateJob.bookInventoryScheduledUpdater(),
+                          bookScheduledUpdateJob.bookRatingScheduledUpdater());
+                    }),
+            0)
+        .subscribe();
   }
 }

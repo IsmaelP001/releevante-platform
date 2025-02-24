@@ -1,4 +1,4 @@
-enum BookLoanStatusValues {
+enum BookTransactionStatusEnum {
   RETURNED_ON_TIME,
   RETURNED_BEFORE_TIME,
   PARTIAL_RETURN,
@@ -7,7 +7,7 @@ enum BookLoanStatusValues {
   OVERDUE,
 }
 
-enum LoanItemStatuses {
+enum TransactionItemStatusEnum {
   REPORTED_LOST,
   LOST,
   RETURNED,
@@ -18,40 +18,45 @@ enum LoanItemStatuses {
   BORROWED,
 }
 
-export interface LoanItemStatus {
+export interface TransactionItemStatus {
   id: string;
-  status: LoanItemStatuses;
-  createdAt: Date;
-}
-
-export interface LoanStatus {
-  id: string;
-  status: BookLoanStatusValues;
-  createdAt: Date;
-}
-
-export interface LoanItem {
-  id: string;
-  cpy: string;
-  statuses: LoanItemStatus[];
-}
-
-export interface LoanSyncDto {
-  id?: string;
   externalId: string;
-  returnsAt?: Date;
-  createdAt?: Date;
-  status: LoanStatus[];
-  items: LoanItem[];
+  status: TransactionItemStatusEnum;
+  createdAt: Date;
+}
+
+export interface TransactionStatus {
+  id: string;
+  externalId: string;
+  status: BookTransactionStatusEnum;
+  createdAt: Date;
+}
+
+export interface TransactionItem {
+  id: string;
+  externalId?: string;
+  cpy: string;
+  status?: TransactionItemStatus[];
+}
+
+export interface TransactionDto {
+  id: string;
+  externalId?: string;
+  createdAt: Date;
+  status?: TransactionStatus[];
+  items: TransactionItem[];
+  transactionType: "RENT" | "PURCHASE";
 }
 
 export interface ClientSyncDto {
   id: string;
-  loan: LoanSyncDto;
+  transactions?: TransactionDto[];
+  transactionStatus?: TransactionStatus[];
+  transactionItemStatus?: TransactionItemStatus[];
 }
 
 export interface LibrarySyncDto {
-  slid: string;
+  slid?: string;
   clients: ClientSyncDto[];
 }
 
@@ -67,5 +72,5 @@ export interface ClientSyncReponse {
 
 export interface LibrarySyncResponse {
   id: string;
-  clients: ClientSyncReponse[];
+  clients: ClientSyncDto[];
 }

@@ -10,7 +10,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface SmartLibraryService {
-  Mono<SmartLibrary> synchronizeClientsLoans(SmartLibrarySyncDto syncDto);
+  Mono<SmartLibrary> synchronizeLibraryTransactions(SmartLibrarySyncDto syncDto);
+
+  Mono<SmartLibrary> synchronizeLibraryTransactionStatus(SmartLibrarySyncDto synchronizeDto);
+
+  Mono<SmartLibrary> synchronizeLibraryClientRatings(SmartLibrarySyncDto synchronizeDto);
 
   Flux<SmartLibraryDto> smartLibrariesValidated(AccountPrincipal principal, Set<Slid> sLids);
 
@@ -21,4 +25,10 @@ public interface SmartLibraryService {
   Flux<LibrarySetting> getSetting(Slid slid);
 
   Mono<Boolean> setSynchronized(Slid slid);
+
+  Mono<Boolean> setBooksSynchronized(Slid slid);
+
+  Mono<Boolean> setLibrarySettingsSynchronized(Slid slid);
+
+  Mono<Boolean> setAccessSynchronized(Slid slid);
 }

@@ -1,21 +1,38 @@
-'use client';
-import { Link, useRouter } from '@/config/i18n/routing';
-import { cn } from '@/lib/utils';
-import React, { useRef } from 'react';
-import { buttonVariants } from '../ui/button';
-import Image from 'next/image';
-import MainSliderBooks from '../MainSliderBooks';
-import useOnClickOutside from '@/hooks/useOnClickOutside';
+"use client";
+import { Link, useRouter } from "@/config/i18n/routing";
+import { cn } from "@/lib/utils";
+import React, { useEffect, useRef } from "react";
+import { buttonVariants } from "../ui/button";
+import Image from "next/image";
+import MainSliderBooks from "../MainSliderBooks";
+import useOnClickOutside from "@/hooks/useOnClickOutside";
+import useAuth from "@/hooks/useAuth";
+import { fetchConfiguration } from "@/redux/features/settingsSlice";
+import { useAppDispatch } from "@/redux/hooks";
+import { initWebSocketServer } from "@/socket";
 
 export default function RestHomePage() {
   const refSliderContainer = useRef(null);
   const refButtonsContainer = useRef(null);
+  const dispatch = useAppDispatch();
+
   const router = useRouter();
   const handleOutsideClick = () => {
-    router.push('/home');
+    router.push("/selection");
   };
 
-  useOnClickOutside(refSliderContainer, handleOutsideClick, refButtonsContainer);
+  useOnClickOutside(
+    refSliderContainer,
+    handleOutsideClick,
+    refButtonsContainer
+  );
+
+  const { logoutMutation } = useAuth();
+  useEffect(() => {
+    dispatch(fetchConfiguration());
+    logoutMutation.mutateAsync();
+    initWebSocketServer(dispatch);
+  }, []);
 
   return (
     <div className="relative min-h-[80vh] overflow-hidden">
@@ -51,18 +68,18 @@ export default function RestHomePage() {
         <Link
           className={cn(
             buttonVariants(),
-            'rounded-3xl font-medium text-xs hover:text-primary '
+            "rounded-3xl font-medium text-xs hover:text-primary "
           )}
-          href="/home"
+          href="/selection"
         >
           Search a book
         </Link>
         <Link
           className={cn(
             buttonVariants(),
-            'rounded-3xl font-medium text-xs hover:text-primary '
+            "rounded-3xl font-medium text-xs hover:text-primary "
           )}
-          href="/returnbook"
+          href="/checkin"
         >
           Return a book
         </Link>

@@ -1,15 +1,14 @@
 "use client";
 import { authSignIn, authSignOut, getAuthToken } from "@/actions/auth-actions";
-import { fetchConfiguration } from "@/redux/features/settingsSlice";
 import { useAppDispatch } from "@/redux/hooks";
-import {  useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { multiAction } from "@/redux/actionCreators";
 import { clearCart } from "@/redux/features/cartSlice";
 import { clearCheckout } from "@/redux/features/checkoutSlice";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
-import { fetchUserBookLoans } from "@/actions/book-transactions-actions";
+import { fetchUserTransactions } from "@/actions/book-transactions-actions";
 
 interface Credential {
   code: string;
@@ -22,15 +21,17 @@ const useAuth = () => {
   const searchParams = useSearchParams();
   const locale = useLocale();
   const [isUserSignin, setIsUserSignin] = useState<boolean>(false);
-  const queryClient= useQueryClient()
+  const queryClient = useQueryClient();
   const loginMutation = useMutation({
     mutationFn: (credentials: Credential) => authSignIn(credentials.code),
     onSuccess() {
       setIsUserSignin(true);
-      dispatch(fetchConfiguration());
-      const redirectUrl = searchParams?.get("redirect") || `/${locale}/home`;
+      const redirectUrl =
+        searchParams?.get("redirect") || `/${locale}/selection`;
       router.push(redirectUrl);
-      queryClient.invalidateQueries({ queryKey: ["BOOKS_BY_CATEGORIES"] });
+      queryClient.invalidateQueries({
+        queryKey: ["BOOK_INVENTORY", "BOOK_BY_TRANSLATION_ID"],
+      });
     },
     onError() {
       setError(true);
@@ -50,20 +51,23 @@ const useAuth = () => {
     })();
   }, []);
 
-  useEffect(()=>{
-     if(isUserSignin){
+  useEffect(() => {
+    if (isUserSignin) {
       queryClient.prefetchQuery({
-        queryKey:['RETURN_BOOKS'],
-        queryFn:async()=>await fetchUserBookLoans()
-      })
-     }
-  },[isUserSignin])
+        queryKey: ["RETURN_BOOKS"],
+        queryFn: async () => await fetchUserTransactions(),
+      });
+    }
+  }, [isUserSignin]);
 
   const logoutMutation = useMutation({
     mutationFn: () => authSignOut(),
     onSuccess() {
       dispatch(multiAction([clearCart(), clearCheckout()]));
-      queryClient.invalidateQueries({queryKey:['RETURN_BOOKS'],refetchType:'none'})
+      queryClient.invalidateQueries({
+        queryKey: ["RETURN_BOOKS"],
+        refetchType: "none",
+      });
       router.push("/");
     },
   });

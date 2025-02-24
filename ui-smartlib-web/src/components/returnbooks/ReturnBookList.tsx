@@ -8,7 +8,11 @@ import { formatDateByRegion } from "@/lib/utils";
 import { Link, useRouter } from "@/config/i18n/routing";
 import EmptyRentedBooks from "./EmptyRentedBooks";
 import { setCurrentBookForCheckin } from "@/redux/features/returnbookSlice";
-import useGetUserTransactions from "@/hooks/useGetReturnBooks";
+import useGetUserTransactions from "@/hooks/useGetReturnBooks_";
+import {
+  TransactionItemStatusEnum,
+  TransactionType,
+} from "@/core/domain/loan.model";
 
 const TIME_REGIONS = {
   en: "en-US",
@@ -110,10 +114,12 @@ export default function ReturnBookList() {
                         isbn: item.isbn,
                         image: item.image!,
                         title: item.title!,
-                        status: "CHECKIN_PENDING",
+                        cpy: item.cpy,
+                        transactionType: TransactionType.RENT,
+                        status: TransactionItemStatusEnum.CHECKIN_PENDING,
                       })
                     );
-                    router.push("/returnbook/deposit");
+                    router.push("/checkin/deposit");
                   }}
                 />
               ))}

@@ -2,17 +2,21 @@ import { relations, sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { bookSchema } from "./books";
 import { bookLayoutSchema } from "./bookLayout";
-import { loanItemSchema } from "./LoanItems";
+import { bookTransactionItemSchema } from "./bookTransactionItem";
+import { BookCopyStatusEnum } from "@/book/domain/models";
+
+
+const CopyStatus =  BookCopyStatusEnum;
+
 
 export const bookCopieSchema = sqliteTable("books_copies", {
   id: text("id").primaryKey(),
   book_isbn: text("book_isbn")
     .notNull()
     .references(() => bookSchema.id),
-  is_available: integer("is_available", { mode: "boolean" })
-    .notNull()
-    .default(true),
-  at_position: text("at_position").default("M10"),
+  status: text("status").notNull(),
+  isAvailable: integer("is_available", { mode: "boolean" }).default(true),
+  at_position: text("at_position").notNull(),
   usageCount: integer("usage_count", { mode: "number" }).notNull().default(0),
   created_at: text("created_at")
     .notNull()
@@ -36,7 +40,7 @@ export const bookCopieRelations = relations(
       fields: [bookCopieSchema.at_position],
       references: [bookLayoutSchema.id],
     }),
-    loanItems: many(loanItemSchema),
+    loanItems: many(bookTransactionItemSchema),
   })
 );
 

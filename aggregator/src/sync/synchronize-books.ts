@@ -16,13 +16,14 @@ const tagNameMapper: any = {
 export const synchronizeBooks = async (token: string) => {
   let syncComplete = false;
   let page = 0;
-  let totalRecordsSynced = 0;
+  let totalTagsRecordsSynced = 0;
+  let totalBookRecords = 0;
   let totalBookCopies = 0;
   while (syncComplete == false) {
     try {
       const request: ApiRequest = {
         token,
-        resource: `books?page=${page}&size=2000&includeTags=true&slid=${slid}&status=not_synced&includeImages=true`,
+        resource: `slid/${slid}/books?page=${page}&size=2000&includeTags=true&status=not_synced&includeImages=true`,
       };
       const response = await executeGet<Book[]>(request);
       const books = response.context.data;
@@ -30,12 +31,9 @@ export const synchronizeBooks = async (token: string) => {
       syncComplete = books?.length == 0 || response.statusCode !== 200;
       if (response.statusCode == 200) {
         if (books && books.length) {
-          totalBookCopies += books.length;
-          totalRecordsSynced += await insertBook(books);
-          totalRecordsSynced += await insertTags(books);
-          //totalRecordsSynced += await insertImages(books);
-          totalRecordsSynced += await insertBookCopies(books);
-          //totalRecordsSynced += await insertCategories(books);
+          totalBookRecords += await insertBook(books);
+          totalTagsRecordsSynced += await insertTags(books);
+          totalBookCopies += await insertBookCopies(books);
         }
       } else {
         console.log(
@@ -44,13 +42,14 @@ export const synchronizeBooks = async (token: string) => {
       }
     } catch (error) {
       syncComplete = true;
-     // console.log(error);
     }
   }
 
+  console.log("TOTAL BOOK RECORDS SYNCHRONIZED: " + totalBookRecords);
+
   console.log("TOTAL BOOK COPIES SYNCHRONIZED: " + totalBookCopies);
 
-  return totalRecordsSynced;
+  return totalTagsRecordsSynced + totalBookCopies + totalBookRecords;
 };
 
 const insertCategories = async (books: Book[]): Promise<number> => {
@@ -142,17 +141,17 @@ const insertTags = async (books: Book[]): Promise<number> => {
       dbChanges += create_stmt1.run({
         id: tag.id,
         tag_name: tagNameMapper[tag.name] || tag.name,
-        en_tag_value: tag.value,
-        fr_tag_value: tag.valueFr || tag.value,
-        es_tag_value: tag.valueSp || tag.value,
+        en_tag_value: tag.value?.en,
+        fr_tag_value: tag.value?.fr || tag.value?.en,
+        es_tag_value: tag.value?.es || tag.value?.en,
       }).changes;
     } catch (error: any) {
       try {
         dbChanges += update_stmt1.run(
           tagNameMapper[tag.name] || tag.name,
-          tag.value,
-          tag.valueFr || tag.value,
-          tag.valueSp || tag.value,
+          tag.value?.en,
+          tag.value?.fr || tag.value?.en,
+          tag.value?.es || tag.value?.en,
           tag.id
         ).changes;
       } catch (error: any) {
@@ -200,7 +199,7 @@ const insertBook = async (books: Book[]) => {
     `UPDATE books SET book_title=?, correlation_id=?, edition_title=?, language=?, author=?, 
     description_en=?, description_fr=?, description_es=?, print_length=?, publicationDate=?, 
     dimensions=?, price=?, public_isbn=?, publisher=?, binding_type=?, rating=?, votes=?, updated_at=?, 
-    image=?, image_id=?, translation_id=?, qty=?, qty_for_sale=? WHERE id=?`
+    image=?, image_id=?, translation_id=? WHERE id=?`
   );
 
   let dbChanges = 0;
@@ -214,9 +213,9 @@ const insertBook = async (books: Book[]) => {
         edition_title: book.title,
         language: book.language,
         author: book.author,
-        description_en: book.description,
-        description_es: book.descriptionSp,
-        description_fr: book.descriptionFr,
+        description_en: book.description.en,
+        description_es: book.description.es,
+        description_fr: book.description.fr,
         print_length: book.printLength,
         publicationDate: book.publishDate,
         dimensions: book.dimensions,
@@ -235,16 +234,15 @@ const insertBook = async (books: Book[]) => {
         updated_at: book.updatedAt,
       }).changes;
     } catch (error: any) {
-      console.log(error)
       dbChanges += update_stmt.run(
         book.title,
         book.correlationId,
         book.title,
         book.language,
         book.author,
-        book.description,
-        book.descriptionFr,
-        book.descriptionSp,
+        book.description.en,
+        book.description.fr,
+        book.description.es,
         book.printLength,
         book.publishDate,
         book.dimensions,
@@ -258,8 +256,6 @@ const insertBook = async (books: Book[]) => {
         book.images[0].url,
         book.images[0].id,
         book.translationId,
-        book.qty,
-        book.qtyForSale || 0,
         book.isbn
       ).changes;
     }
@@ -304,12 +300,12 @@ const insertImages = async (books: Book[]) => {
 
 const insertBookCopies = async (books: Book[]) => {
   const create_stmt = dbConnection.prepare(
-    `INSERT INTO books_copies(id, book_isbn, is_available, at_position, usage_count, created_at, updated_at) 
-     VALUES (@id, @book_isbn, @is_available, @at_position, @usage_count, @created_at, @updated_at)`
+    `INSERT INTO books_copies(id, book_isbn, status, at_position, usage_count, created_at, updated_at) 
+     VALUES (@id, @book_isbn, @status, @at_position, @usage_count, @created_at, @updated_at)`
   );
 
   const update_stmt = dbConnection.prepare(
-    "UPDATE books_copies SET book_isbn=?, is_available=?, at_position=?, usage_count=?, updated_at=? WHERE id=?"
+    "UPDATE books_copies SET status=?, is_available=?, at_position=?, usage_count=?, updated_at=? WHERE id=?"
   );
 
   let dbChanges = 0;
@@ -320,22 +316,24 @@ const insertBookCopies = async (books: Book[]) => {
     bookCopies = [...bookCopies, ...book.copies];
   });
 
+  console.log(bookCopies);
+
   bookCopies.forEach((copy) => {
     try {
       dbChanges += create_stmt.run({
         id: copy.id,
         book_isbn: copy.isbn,
-        is_available: 1,
-        at_position: copy.atPosition,
+        status: copy.status,
+        at_position: copy.allocation,
         usage_count: copy.usageCount,
         created_at: copy.createdAt,
         updated_at: copy.updatedAt,
       }).changes;
     } catch (error: any) {
       dbChanges += update_stmt.run(
-        copy.isbn,
-        1,
-        copy.atPosition,
+        copy.status,
+        copy.status == "AVAILABLE" ? 1 : 0,
+        copy.allocation,
         copy.usageCount,
         copy.updatedAt,
         copy.id

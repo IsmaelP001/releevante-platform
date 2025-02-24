@@ -1,10 +1,11 @@
+import { Cart } from "../domain/cart.model";
 import {
   BookTransactionItemStatus,
   BookTransactions,
   BookTransactionStatus,
 } from "../domain/loan.model";
-import { CartDto, LoanItemStatusDto, LoanStatusDto } from "./dto";
-import { CartService, BookLoanService } from "./service.definition";
+import { CartDto, CartInitDto, LoanItemStatusDto, LoanStatusDto } from "./dto";
+import { CartService, BookTransactionService, TransactionItemStatusDto } from "./service.definition";
 import { v4 as uuidv4 } from "uuid";
 
 /***
@@ -13,7 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 export class CartServiceFacade {
   constructor(
     private cartService: CartService,
-    private bookLoanService: BookLoanService
+    private bookLoanService: BookTransactionService
   ) {}
 
   /**
@@ -22,27 +23,35 @@ export class CartServiceFacade {
    * @returns
    */
   async checkout(dto: CartDto): Promise<BookTransactions> {
-    const cart = await this.cartService.checkout(dto);
-    console.log("cart checkout dto", dto);
     try {
+      const cart = await this.cartService.checkout(dto);
+      console.log("cart checkout dto", dto);
       return await this.bookLoanService.checkout(cart);
     } catch (error) {
       console.log(error);
-      await this.cartService.onCheckOutFailed(cart);
+      await this.cartService.onCheckOutFailed(dto);
       throw error;
     }
   }
 
+  /**
+   *
+   * @param cartDto cart dto,
+   * @returns
+   */
+  async initCart(dto: CartInitDto): Promise<CartDto> {
+    return this.cartService.initCart(dto);
+  }
+
   async newLoanItemStatus(
-    dto: LoanItemStatusDto
+    dto: TransactionItemStatusDto
   ): Promise<BookTransactionItemStatus> {
     const status: BookTransactionItemStatus = {
+      ...dto,
       id: uuidv4(),
       createdAt: new Date().toISOString(),
-      itemId: dto.itemId,
-      status: dto.status,
     };
-    return await this.bookLoanService.addLoanItemStatus(status);
+    return await this.bookLoanService.newTransactionItemStatus(status);
   }
 
   async newLoanStatus(dto: LoanStatusDto): Promise<BookTransactionStatus> {
@@ -52,6 +61,6 @@ export class CartServiceFacade {
       transactionId: dto.loanId,
       status: dto.status,
     };
-    return await this.bookLoanService.addLoanStatus(status);
+    return await this.bookLoanService.newTransactionStatus(status);
   }
 }

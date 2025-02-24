@@ -3,7 +3,9 @@
 import SimpleNavbar from "@/components/SimpleNavbar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Link, useRouter } from "@/config/i18n/routing";
+import { TransactionType } from "@/core/domain/loan.model";
 import { useAddBookToCart } from "@/hooks/useAddBookToCart";
+import { useCheckout } from "@/hooks/useCheckout";
 import useGetBooks from "@/hooks/useGetBooks";
 import { cn } from "@/lib/utils";
 import { removeItem, updateItem } from "@/redux/features/cartSlice";
@@ -92,16 +94,18 @@ export default function ReviewCartPage() {
   const t = useTranslations("cart");
   const tReviewCart = useTranslations("reviewMyCart");
 
+  const { transactionCheckout } = useCheckout();
+
   const router = useRouter();
 
   const dispatch = useAppDispatch();
 
   const handleMoveToBuy = (isbn: string) => {
-    dispatch(updateItem({ isbn, transactionType: "PURCHASE" }));
+    dispatch(updateItem({ isbn, transactionType: TransactionType.PURCHASE }));
   };
 
   const handleMoveToRent = (isbn: string) => {
-    dispatch(updateItem({ isbn, transactionType: "RENT" }));
+    dispatch(updateItem({ isbn, transactionType: TransactionType.RENT }));
   };
 
   const handleRemoveItem = (isbn: string) => {
@@ -202,7 +206,7 @@ export default function ReviewCartPage() {
         )}
       </div>
       <div className="flex justify-center items-center  py-3 px-5 bg-white">
-        <Link
+        {/* <Link
           href="/checkout"
           className={cn(
             buttonVariants(),
@@ -213,7 +217,20 @@ export default function ReviewCartPage() {
             {" "}
             {tReviewCart("confirmWithdrawal")}
           </span>
-        </Link>
+        </Link> */}
+
+        <Button
+          onClick={transactionCheckout}
+          className={cn(
+            buttonVariants(),
+            "m-auto bg-primary rounded-full py-6 px-7 hover:text-black border-primary"
+          )}
+        >
+          <span className="first-letter:uppercase">
+            {" "}
+            {tReviewCart("confirmWithdrawal")}
+          </span>
+        </Button>
       </div>
     </section>
   );

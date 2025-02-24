@@ -103,7 +103,7 @@ public class BookRepositoryImpl implements BookRepository {
 
   private Mono<TagRecord> getTagOrSave(Tag tag) {
     return tagHibernateDao
-        .findFirstByValueIgnoreCase(tag.value())
+        .findFirstByValueIgnoreCase(tag.value().en())
         .switchIfEmpty(Mono.defer(() -> tagHibernateDao.save(TagRecord.from(tag))));
   }
 
@@ -148,6 +148,7 @@ public class BookRepositoryImpl implements BookRepository {
                     .createdAt(projection.getCreatedAt())
                     .updatedAt(projection.getUpdatedAt())
                     .id(copy.getCpy())
+                    .allocation(projection.getAllocation())
                     .isSync(copy.isSync())
                     .status(BookCopyStatus.valueOf(copy.getStatus()))
                     .usageCount(copy.getUsageCount())
@@ -261,5 +262,12 @@ public class BookRepositoryImpl implements BookRepository {
   @Override
   public Mono<Book> findByIsbn(String isbn) {
     return null;
+  }
+
+  @Override
+  public Mono<Book> updateRating(Book book) {
+    return bookHibernateDao
+        .updateBookRatingAndVotes(book.isbn().value(), book.rating(), book.votes())
+        .thenReturn(book);
   }
 }
