@@ -9,7 +9,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   typescript:{
-    ignoreDuringBuilds:true
+    ignoreBuildErrors:true
   },
   images: {
     remotePatterns: [

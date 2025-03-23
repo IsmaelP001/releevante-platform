@@ -1,10 +1,9 @@
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/config/i18n/request.ts');
- 
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -12,11 +11,11 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**', // Permitir todos los dominios https
+        hostname: '**', 
       },
       {
         protocol: 'http',
-        hostname: '**', // Permitir todos los dominios http (opcional)
+        hostname: '**',
       }
     ],
   },
