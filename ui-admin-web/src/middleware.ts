@@ -3,7 +3,16 @@ import createMiddleware from "next-intl/middleware";
 import { routing } from "./config/i18n/routing";
 
 const PROTECTED_ROUTES = ["/reserved"];
-const intlMiddleware = createMiddleware(routing);
+const intlMiddleware = createMiddleware({
+  // A list of all locales that are supported
+  locales: routing.locales,
+  
+  // Used when no locale matches
+  defaultLocale: routing.defaultLocale,
+  
+  // Redirect to default locale if no locale matches
+  localePrefix: 'always'
+});
 
 export default  function Middleware(req: NextRequest) {
   const url = new URL(req.url);
