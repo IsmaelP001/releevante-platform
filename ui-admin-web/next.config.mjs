@@ -8,21 +8,28 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  typescript:{
-    ignoreBuildErrors:true
+  typescript: {
+    ignoreBuildErrors: true
   },
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**', // Permitir todos los dominios https
+        hostname: '**',
       },
       {
         protocol: 'http',
-        hostname: '**', // Permitir todos los dominios http (opcional)
+        hostname: '**',
       }
     ],
   },
+  // Add trailingSlash configuration
+  trailingSlash: false,
+  // Add poweredByHeader configuration
+  poweredByHeader: false,
+  // Improve production performance
+  swcMinify: true,
+  reactStrictMode: true,
 };
 
 export default withNextIntl(nextConfig);
