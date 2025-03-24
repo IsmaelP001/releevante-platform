@@ -10,7 +10,7 @@ export default  function Middleware(req: NextRequest) {
   const pathname = url.pathname;
   const pathWithoutLocale = pathname.replace(/^\/(?:en|es|fr)/, "");
 
-  const token = req.cookies.get(process.env.AUTH_COOKIE!)?.value
+  const token = req?.cookies?.get(process.env.AUTH_COOKIE!)?.value
   const redirectUrl = new URL(`/en/auth/code`, req.url);
   redirectUrl.searchParams.set("redirect", pathWithoutLocale);
 
